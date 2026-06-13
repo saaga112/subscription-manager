@@ -76,11 +76,26 @@ Open [http://localhost:3000](http://localhost:3000).
    on this device.
 4. **Subscriptions** — review, edit, add manually, or cancel/delete entries.
 
+### Accessing from your phone
+
+By default `npm run dev` binds to all network interfaces, so while your
+computer is running the server you can open it from a phone on the **same
+Wi-Fi network** at `http://<your-computer's-LAN-IP>:3000` (find the IP with
+`ifconfig` / `ipconfig`, or check the "Network:" URL printed when `npm run
+dev` starts).
+
+Note: iOS only allows web push notifications over **HTTPS** (or
+`localhost`), so push notifications won't work over a plain `http://` LAN
+address. For push notifications and reliable phone access, run the app
+behind HTTPS — e.g. via [Tailscale](https://tailscale.com) (`tailscale
+serve`) for a private always-reachable URL, or deploy it to a host with a
+real domain.
+
 ### Installing on iPhone (PWA)
 
 In Safari, open the app, tap **Share → Add to Home Screen**. Open it from the
 home screen icon, then go to **Settings** and tap **Enable push
-notifications on this device** (requires iOS 16.4+).
+notifications on this device** (requires iOS 16.4+ and HTTPS, see above).
 
 ### Background sync & reminders
 
