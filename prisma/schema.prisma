@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  UNKNOWN
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIAL
+  CANCELLED
+}
+
+enum ParseMethod {
+  RULE
+  LLM
+  MANUAL
+}
+
+enum ParsingMode {
+  RULE
+  HYBRID
+  LLM
+}
+
+enum ReminderChannel {
+  PUSH
+  EMAIL
+}
+
+model ConnectedAccount {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  accessToken   String
+  refreshToken  String
+  expiryDate    DateTime
+  lastSyncAt    DateTime?
+  lastHistoryId String?
+  createdAt     DateTime @default(now())
+
+  subscriptions Subscription[]
+  parsedEmails  ParsedEmail[]
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  name             String
+  amount           Float
+  currency         String             @default("USD")
+  billingCycle     BillingCycle       @default(UNKNOWN)
+  nextRenewalDate  DateTime?
+  lastDetectedAt   DateTime?
+  status           SubscriptionStatus @default(ACTIVE)
+  category         String?
+  notes            String?
+  sourceAccountId  String?
+  sourceAccount    ConnectedAccount?  @relation(fields: [sourceAccountId], references: [id], onDelete: SetNull)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  parsedEmails  ParsedEmail[]
+  reminderLogs  ReminderLog[]
+
+  @@index([sourceAccountId, name])
+}
+
+model ParsedEmail {
+  id              String           @id @default(cuid())
+  accountId       String
+  account         ConnectedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  gmailMessageId  String           @unique
+  subject         String
+  fromAddress     String
+  receivedAt      DateTime
+  parseMethod     ParseMethod      @default(RULE)
+  confidence      Float            @default(0)
+  rawSnippet      String?
+  subscriptionId  String?
+  subscription    Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  createdAt       DateTime         @default(now())
+}
+
+model ReminderLog {
+  id                   String          @id @default(cuid())
+  subscriptionId       String
+  subscription         Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  channel              ReminderChannel
+  sentAt               DateTime        @default(now())
+  renewalDateSnapshot  DateTime
+
+  @@index([subscriptionId, channel, renewalDateSnapshot])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+
+model AppSettings {
+  id                    Int         @id @default(1)
+  parsingMode           ParsingMode @default(HYBRID)
+  reminderDaysBefore    String      @default("3,1")
+  reminderChannels      String      @default("PUSH,EMAIL")
+  reminderFromAccountId String?
+  notificationEmail     String?
+}
